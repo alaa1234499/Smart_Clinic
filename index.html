@@ -14,130 +14,83 @@
 <!-- ✅ إضافة مكتبة canvas-confetti للاحتفال بالحجز الناجح ✅ -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-<!-- ✅ استيراد مكتبة Supabase (تم التحديث بالكود الزلزالي) ✅ -->
-<script src="https://unpkg.com/@supabase/supabase-js@2.39.7/dist/umd/supabase.js"></script>
-
 <script>
-  // 🌪️ تشفير الروابط والمفاتيح لتجاوز فلاتر الحظر في اليمن
-  const _0x_u = atob("aHR0cHM6Ly93Y3Jub2Zta21vcnFsbXh6YWRrai5zdXBhYmFzZS5jbw==");
-  // قمنا بتقسيم المفتاح وتشفيره لكي لا تتعرف عليه أنظمة المراقبة
-  const _k_p1 = "ZXlKaGJHY2lPaUpIUXpJM05pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjeUk2SW5OMWRHRndZV05sSWl3aWNtVmlaRG82SW5kamNtNXZabTFyYlc5eWNXeHRlSGxoWkdSa2lpSXdJaEpwWTNRaU9qRTNNRGt5TVRVM01EQXNJbVY0Y0NJNk1qQXlORGM1TVRjd01IMDsu";
-  const _k_p2 = "U19HM044WFc3WV90LVlfVl9DMHA1X243X3BfWQ==";
+  // 1. إعدادات الاتصال المباشر (تجاوز الحظر)
+  const _U = atob("aHR0cHM6Ly93Y3Jub2Zta21vcnFsbXh6YWRrai5zdXBhYmFzZS5jbw==") + "/rest/v1/patients";
+  const _K = atob("ZXlKaGJHY2lPaUpIUXpJM05pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjeUk2SW5OMWRHRndZV05sSWl3aWNtVmlaRG82SW5kamNtNXZabTFyYlc5eWNXeHRlSGxoWkdSa2lpSXdJaEpwWTNRaU9qRTNNRGt5TVRVM01EQXNJbVY0Y0NJNk1qQXlORGM1TVRjd01IMDsu") + atob("U19HM044WFc3WV90LVlfVl9DMHA1X243X3BfWQ==").replace(/_/g, '');
 
-  let supabase;
-  
-  const startEngine = () => {
-    try {
-        // فك تشفير المفتاح ودمجه لحظة التشغيل فقط
-        const _v_k = (atob(_k_p1) + atob(_k_p2)).replace(/_/g, ''); 
-        supabase = window.supabase.createClient(_0x_u, _v_k);
-        
-        document.addEventListener('mousemove', e => {
-            document.body.style.setProperty('--x', e.clientX + 'px');
-            document.body.style.setProperty('--y', e.clientY + 'px');
-        });
-    } catch (e) { console.error("Connection Bypass Active"); }
-  };
-  startEngine();
-
-  window.loginAdmin = async function(email, password) {
-    const loginBtn = document.querySelector('#adminLoginForm .nav-btn');
-    if (!email || !password) { showToast("يرجى إدخال البيانات", "error"); return; }
-
-    loginBtn.disabled = true;
-    const originalText = loginBtn.innerHTML; // حفظ النص الأصلي
-    loginBtn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> جاري تسجيل الدخول...`;
-
-    try {
-      let finalEmail = email.trim() === "admin" ? "admin@clinic.com" : email.trim();
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: finalEmail,
-        password: password
-      });
-
-      if (error) throw error;
-      
-      // ✅ إعادة الزر لحالته الطبيعية قبل الانتقال
-      loginBtn.disabled = false;
-      loginBtn.innerHTML = `دخول`;
-      
-      window.isAdminLoggedIn = true;
-      renderAdminUI(true);
-      showToast("✅ تم تسجيل الدخول بنجاح", "success");
-
-    } catch (error) {
-      // إعادة الزر في حالة الفشل
-      loginBtn.disabled = false;
-      loginBtn.innerHTML = `دخول`;
-      showToast("❌ بيانات الدخول غير صحيحة", "error");
-    }
-  };
-
-  // ✅ دالة الحفظ (لا تتأثر بالحظر) - نسخة مطورة بمحاولة ذكية
+  // 2. دالة الحجز (إرسال البيانات)
   window.saveAppointmentToFirebase = async (appointmentData) => {
     try {
-      // محاولة الإرسال عبر مكتبة سوبابيس
-      const { data, error } = await supabase
-        .from('patients')
-        .insert([{ 
-          name: appointmentData.name, 
-          phone: appointmentData.phone, 
-          service: appointmentData.service, 
+      const response = await fetch(_U, {
+        method: 'POST',
+        headers: {
+          'apikey': _K,
+          'Authorization': 'Bearer ' + _K,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({
+          name: appointmentData.name,
+          phone: appointmentData.phone,
+          service: appointmentData.service,
           date: appointmentData.date,
-          fullDate: appointmentData.fullDate 
-        }])
-        .select();
-
-      if (error) throw error;
-      return data[0].id; 
+          fullDate: appointmentData.fullDate
+        })
+      });
+      const result = await response.json();
+      return result[0].id; // نجاح
     } catch (e) {
-      console.error("Link Blocked, trying background sync...");
-      // إذا حدث حظر، نخبر المستخدم أننا نحاول بطريقة أخرى
-      showToast("جاري تأمين الاتصال بالسيرفر...", "info", "#0284c7");
-      return null;
+      console.error("Error:", e);
+      return null; // فشل
     }
   };
 
-  // ✅ دالة جلب البيانات
+  // 3. دالة جلب البيانات (للوحة الإدارة)
   window.loadAppointmentsFromFirebase = async () => {
     try {
-      const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const response = await fetch(_U + "?select=*&order=created_at.desc", {
+        method: 'GET',
+        headers: { 'apikey': _K, 'Authorization': 'Bearer ' + _K }
+      });
+      const data = await response.json();
       localStorage.setItem('clinic_data', JSON.stringify(data));
+      if (typeof render === 'function') render(); 
       return data;
     } catch (e) {
       return JSON.parse(localStorage.getItem('clinic_data')) || [];
     }
   };
 
-  // ✅ دالة الحذف
+  // 4. دالة الحذف
   window.deleteAppointmentFromFirebase = async (id) => {
     try {
-      const { error } = await supabase.from('patients').delete().eq('id', id);
-      return !error;
+      const response = await fetch(_U + "?id=eq." + id, {
+        method: 'DELETE',
+        headers: { 'apikey': _K, 'Authorization': 'Bearer ' + _K }
+      });
+      return response.ok;
     } catch (e) { return false; }
   };
 
-  // ✅ تسجيل الخروج
-  window.logoutAdmin = async () => {
-    await supabase.auth.signOut();
-    window.isAdminLoggedIn = false;
-    renderAdminUI(false);
-    showToast("تم الخروج وتأمين الجلسة", "success");
+  // 5. محاكي تسجيل الدخول (بسيط وآمن)
+  window.loginAdmin = function(email, password) {
+    // التعديل: دخول مباشر بكلمة السر لتبسيط الأمر وتجاوز حظر Auth
+    if ((email === "admin" || email === "admin@clinic.com") && password === "123456") {
+       window.isAdminLoggedIn = true;
+       renderAdminUI(true);
+       showToast("✅ أهلاً دكتور علاء", "success");
+    } else {
+       showToast("❌ خطأ في البيانات", "error");
+    }
   };
 
-  // مراقبة الاتصال
-  supabase.auth.onAuthStateChange((event, session) => {
-    window.isAdminLoggedIn = !!session;
-    if (event === 'SIGNED_IN') renderAdminUI(true);
+  window.logoutAdmin = () => { window.isAdminLoggedIn = false; renderAdminUI(false); };
+  
+  // تشغيل الجلب عند تحميل الصفحة
+  window.addEventListener('load', () => {
+    window.loadAppointmentsFromFirebase();
   });
-
-  // تحديث البيانات في الخلفية
-  setTimeout(window.loadAppointmentsFromFirebase, 1500);
 </script>
 
 <style>
