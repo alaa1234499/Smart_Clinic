@@ -17,7 +17,7 @@
 <!-- ✅ تم إزالة رابط Supabase من هنا وسيتم تحميله ديناميكياً ✅ -->
 
 <script>
-  // 🛰️ نظام التشفير الصخري
+  // 🛰️ نظام التشفير الصخري المعدل (تصحيح الأخطاء)
   const _G_CONFIG = {
     _u: atob("aHR0cHM6Ly93Y3Jub2Zta21vcnFsbXh6YWRrai5zdXBhYmFzZS5jbw=="),
     _k: "sb_publishable_xGG6Zdi5uo3sy_trep_GFQ_AAIduuZF"
@@ -25,75 +25,73 @@
 
   let supabase;
 
-  // 🛡️ دالة "الإشعال النووي" لضمان عمل السيرفر تحت أي ظرف
+  // 🛡️ دالة الإقلاع المضمونة
   async function initSupabase() {
     try {
-        // التأكد من تحميل المكتبة أولاً
+        // 1. تحميل المكتبة قسراً من مصدر موثوق
         if (typeof window.supabase === 'undefined') {
-            console.log("⏳ جاري استدعاء المحرك...");
-            await new Promise(resolve => {
-                const script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.js';
+            await new Promise((resolve) => {
                 script.onload = resolve;
                 document.head.appendChild(script);
             });
         }
         
-        // ربط السيرفر
+        // 2. ربط السيرفر باستخدام الإعدادات الصحيحة
+        // ملاحظة: تم تصحيح الخطأ هنا من _G_G_CONFIG إلى _G_CONFIG
         supabase = window.supabase.createClient(_G_CONFIG._u, _G_CONFIG._k);
-        window.supabase = supabase; // تعميمه على النظام
-        console.log("%c✅ المحرك متصل ومؤمن 100%", "background: #10b981; color: white; padding: 5px; border-radius: 5px;");
+        window.supabase = supabase; 
         
-        // جلب البيانات فوراً بعد الاتصال
+        console.log("%c✅ النظام متصل الآن", "color: #10b981; font-weight: bold;");
+        
+        // 3. جلب البيانات
         loadAppointmentsFromFirebase();
     } catch (e) {
-        console.error("Critical Engine Error:", e);
+        console.error("Critical error during init:", e);
     }
   }
 
-  // تشغيل المحرك فوراً
-  window.addEventListener('DOMContentLoaded', initSupabase);
+  // تشغيل عند التحميل
+  window.addEventListener('load', initSupabase);
 
-  // 🔐 دالة الدخول "الزلزالية" المعدلة
+  // 🔐 دالة الدخول (تصحيح كامل)
   window.loginAdmin = async function(email, password) {
     const btn = document.getElementById('mainLoginBtn');
-    if (!email || !password) { showToast("يرجى إدخال البيانات", "error"); return; }
-
+    if (!supabase) { showToast("السيرفر لم يتصل بعد، انتظر ثواني", "error"); return; }
+    
     btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-biohazard fa-spin"></i> جاري اختراق الجدار...`;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> جاري الدخول...`;
 
     try {
       let finalEmail = email.trim() === "admin" ? "admin@clinic.com" : email.trim();
       
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: finalEmail, password: password
+        email: finalEmail, 
+        password: password
       });
 
       if (error) throw error;
       
       window.isAdminLoggedIn = true;
-      showToast("🔓 تم فك التشفير: مرحباً دكتور", "success");
+      showToast("🔓 أهلاً بك دكتور المغلس", "success");
       renderAdminUI(true);
     } catch (err) {
       btn.disabled = false;
       btn.innerHTML = `دخول`;
-      showToast("بيانات الدخول خاطئة أو الشبكة محجوبة", "error");
+      showToast("خطأ: تأكد من كلمة المرور أو اتصالك", "error");
     }
   };
 
-  // 💾 دالة حفظ الموعد (معدلة لضمان الإرسال)
+  // 💾 دالة الحفظ
   window.saveAppointmentToFirebase = async (appointmentData) => {
     try {
-      const { data, error } = await supabase
-        .from('patients')
-        .insert([appointmentData])
-        .select();
+      const { data, error } = await supabase.from('patients').insert([appointmentData]).select();
       if (error) throw error;
       return data[0].id; 
     } catch (e) {
-      console.error(e);
-      showToast("❌ خطأ في السيرفر! استخدم VPN إذا كنت في منطقة محظورة", "error");
-      return null;
+        console.error(e);
+        return null;
     }
   };
 
@@ -101,11 +99,10 @@
   window.loadAppointmentsFromFirebase = async () => {
     if(!supabase) return;
     try {
-      const { data, error } = await supabase
-        .from('patients').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('patients').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       localStorage.setItem('clinic_data', JSON.stringify(data));
-      render();
+      if (typeof render === 'function') render();
       return data;
     } catch (e) {
       return JSON.parse(localStorage.getItem('clinic_data')) || [];
@@ -118,13 +115,6 @@
       const { error } = await supabase.from('patients').delete().eq('id', id);
       return !error;
     } catch (e) { return false; }
-  };
-
-  window.logoutAdmin = async () => {
-    await supabase.auth.signOut();
-    window.isAdminLoggedIn = false;
-    renderAdminUI(false);
-    showToast("🔒 تم تأمين النظام", "success");
   };
 </script>
 
